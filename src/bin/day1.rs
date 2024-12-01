@@ -1,8 +1,8 @@
 use std::cmp::max;
 use std::cmp::min;
-use std::collections::HashMap;
 
 use itertools::Itertools;
+use rustc_hash::FxHashMap;
 
 fn main() {
     let input = include_str!("../../inputs/day1.txt");
@@ -34,7 +34,7 @@ fn part1(input: &str) -> u32 {
 
 fn part2(input: &str) -> u32 {
     let (left, mut right) = iter(input).fold(
-        (Vec::<u32>::new(), HashMap::<u32, (u32, u32)>::new()),
+        (Vec::<u32>::new(), FxHashMap::<u32, (u32, u32)>::default()),
         |(mut left_vec, mut right_map), (left, right)| {
             left_vec.push(left);
             right_map.entry(right).or_default().1 += 1;
