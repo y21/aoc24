@@ -1,3 +1,5 @@
+use aoc24::grid::Grid;
+
 fn main() {
     let input = include_str!("../../inputs/day4.txt");
 
@@ -6,16 +8,11 @@ fn main() {
 }
 
 fn part1(input: &str) -> u32 {
-    let input = input.as_bytes();
-    let line_len = input.iter().position(|&x| x == b'\n').unwrap();
-    let lines = input.len() / line_len;
-
-    let at = |y: usize, x: usize| input.get((y * line_len) + x + y).copied().unwrap_or(0);
-
+    let grid = Grid::view(input);
     let mut count = 0;
 
-    for y in 0..lines as isize {
-        for x in 0..line_len as isize {
+    for y in 0..grid.height() as isize {
+        for x in 0..grid.width() as isize {
             let directions = [
                 [(y, x), (y, x + 1), (y, x + 2), (y, x + 3)], // right
                 [(y, x), (y + 1, x + 1), (y + 2, x + 2), (y + 3, x + 3)], // down-right
@@ -26,12 +23,17 @@ fn part1(input: &str) -> u32 {
                 [(y, x), (y - 1, x), (y - 2, x), (y - 3, x)], // up
                 [(y, x), (y - 1, x + 1), (y - 2, x + 2), (y - 3, x + 3)], // up-right
             ];
+
             for direction in directions {
                 if direction
                     .iter()
                     .copied()
-                    .filter_map(|(y, x)| usize::try_from(x).ok().zip(usize::try_from(y).ok()))
-                    .map(|(y, x)| at(x, y))
+                    .filter_map(|(y, x)| {
+                        usize::try_from(x)
+                            .ok()
+                            .zip(usize::try_from(y).ok())
+                            .and_then(|(y, x)| grid.at(y, x))
+                    })
                     .eq(*b"XMAS")
                 {
                     count += 1;
@@ -44,17 +46,12 @@ fn part1(input: &str) -> u32 {
 }
 
 fn part2(input: &str) -> u32 {
-    let input = input.as_bytes();
-    let line_len = input.iter().position(|&x| x == b'\n').unwrap();
-    let lines = input.len() / line_len;
-
-    let at = |y: usize, x: usize| input.get((y * line_len) + x + y).copied().unwrap_or(0);
-
+    let grid = Grid::view(input);
     let mut count = 0;
 
-    for y in 0..lines as isize {
-        for x in 0..line_len as isize {
-            if at(y as usize, x as usize) == b'A' {
+    for y in 0..grid.height() as isize {
+        for x in 0..grid.width() as isize {
+            if grid.at(y as usize, x as usize) == Some(b'A') {
                 let directions = [
                     [(y - 1, x - 1), (y + 1, x + 1)], // top left to bottom right
                     [(y + 1, x - 1), (y - 1, x + 1)], // bottom left to top right
@@ -67,8 +64,12 @@ fn part2(input: &str) -> u32 {
                     if direction
                         .iter()
                         .copied()
-                        .filter_map(|(y, x)| usize::try_from(x).ok().zip(usize::try_from(y).ok()))
-                        .map(|(y, x)| at(x, y))
+                        .filter_map(|(y, x)| {
+                            usize::try_from(y)
+                                .ok()
+                                .zip(usize::try_from(x).ok())
+                                .and_then(|(y, x)| grid.at(y, x))
+                        })
                         .eq(*b"MS")
                     {
                         local += 1;

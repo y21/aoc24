@@ -1,3 +1,5 @@
+pub mod grid;
+
 /// Parses the next `DIGITS` in the string as a u32
 pub fn parse_u32<const DIGITS: usize>(input: &str, pos: &mut usize) -> u32 {
     let input = &input.as_bytes()[*pos..*pos + DIGITS];
