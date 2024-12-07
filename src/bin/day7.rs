@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use typed_arena::Arena;
 
 fn main() {
@@ -20,9 +22,13 @@ fn part1(input: &str) -> u64 {
         let mut dfs = vec![(nums[0], &nums[1..])];
 
         while let Some((left, rest)) = dfs.pop() {
-            if left == target {
-                sum += target;
-                break;
+            match left.cmp(&target) {
+                Ordering::Equal => {
+                    sum += target;
+                    break;
+                }
+                Ordering::Greater => continue,
+                Ordering::Less => {}
             }
             if let [cur, ref rest @ ..] = *rest {
                 dfs.push((left + cur, rest));
@@ -61,9 +67,13 @@ fn part2(input: &str) -> u64 {
         let mut dfs = vec![(nums[0], &nums[1..])];
 
         while let Some((left, rest)) = dfs.pop() {
-            if left == target {
-                sum += target;
-                break;
+            match left.cmp(&target) {
+                Ordering::Equal => {
+                    sum += target;
+                    break;
+                }
+                Ordering::Greater => continue,
+                Ordering::Less => {}
             }
             if let [cur, ref rest @ ..] = *rest {
                 dfs.push((left + cur, rest));
