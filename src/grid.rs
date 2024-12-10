@@ -49,6 +49,19 @@ impl<'a> Grid<'a> {
             .flat_map(move |y| (0..self.width()).map(move |x| (y, x, self.at(y, x).unwrap())))
     }
 
+    pub fn direct_neighbors(
+        &self,
+        y: usize,
+        x: usize,
+    ) -> impl Iterator<Item = (usize, usize, u8)> + '_ {
+        let y = y as isize;
+        let x = x as isize;
+        let dirs = [(y - 1, x), (y, x + 1), (y + 1, x), (y, x - 1)];
+        dirs.into_iter()
+            .filter_map(|(y, x)| usize::try_from(y).ok().zip(usize::try_from(x).ok()))
+            .filter_map(|(y, x)| self.at(y, x).map(|c| (y, x, c)))
+    }
+
     pub fn diag_iter(
         &self,
         y: usize,
