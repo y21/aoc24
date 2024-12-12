@@ -49,17 +49,24 @@ impl<'a> Grid<'a> {
             .flat_map(move |y| (0..self.width()).map(move |x| (y, x, self.at(y, x).unwrap())))
     }
 
+    pub fn direct_neighbors_opt(&self, y: usize, x: usize) -> [Option<(usize, usize, u8)>; 4] {
+        direct_neighbor_indices(y, x).map(|(y, x)| {
+            if let Ok(y) = usize::try_from(y)
+                && let Ok(x) = usize::try_from(x)
+            {
+                self.at(y, x).map(|c| (y, x, c))
+            } else {
+                None
+            }
+        })
+    }
+
     pub fn direct_neighbors(
         &self,
         y: usize,
         x: usize,
     ) -> impl Iterator<Item = (usize, usize, u8)> + '_ {
-        let y = y as isize;
-        let x = x as isize;
-        let dirs = [(y - 1, x), (y, x + 1), (y + 1, x), (y, x - 1)];
-        dirs.into_iter()
-            .filter_map(|(y, x)| usize::try_from(y).ok().zip(usize::try_from(x).ok()))
-            .filter_map(|(y, x)| self.at(y, x).map(|c| (y, x, c)))
+        self.direct_neighbors_opt(y, x).into_iter().flatten()
     }
 
     pub fn diag_iter(
@@ -118,6 +125,7 @@ impl DiagDirection {
     }
 }
 
+#[derive(Copy, Clone, Debug)]
 pub struct Coord {
     pub x: usize,
     pub y: usize,
@@ -233,4 +241,10 @@ impl Display for Grid<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.src.fmt(f)
     }
+}
+
+pub fn direct_neighbor_indices(y: usize, x: usize) -> [(isize, isize); 4] {
+    let y = y as isize;
+    let x = x as isize;
+    [(y - 1, x), (y, x + 1), (y + 1, x), (y, x - 1)]
 }

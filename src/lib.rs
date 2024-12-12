@@ -1,3 +1,4 @@
+#![feature(let_chains)]
 pub mod grid;
 
 /// Parses the next `DIGITS` in the string as a u32
