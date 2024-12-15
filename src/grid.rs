@@ -8,13 +8,17 @@ pub struct Grid<'a> {
     lines: usize,
 }
 
+fn line_len(src: &[u8]) -> usize {
+    src.iter()
+        .copied()
+        .position(|n| n == b'\n')
+        .expect("no newline found in input string")
+}
+
 impl<'a> Grid<'a> {
     pub fn view(src: &'a str) -> Self {
         let src = src.trim();
-        let line_len = src
-            .bytes()
-            .position(|n| n == b'\n')
-            .expect("no newline found in input string");
+        let line_len = line_len(src.as_bytes());
         let lines = src.len() / line_len;
 
         Self {
@@ -88,6 +92,14 @@ impl<'a> Grid<'a> {
 }
 
 #[derive(Debug, Copy, Clone)]
+pub enum Direction {
+    Top,
+    Right,
+    Bottom,
+    Left,
+}
+
+#[derive(Debug, Copy, Clone)]
 pub enum DiagDirection {
     Top,
     TopRight,
@@ -97,6 +109,17 @@ pub enum DiagDirection {
     BottomLeft,
     Left,
     TopLeft,
+}
+
+impl From<Direction> for DiagDirection {
+    fn from(value: Direction) -> Self {
+        match value {
+            Direction::Top => Self::Top,
+            Direction::Right => Self::Right,
+            Direction::Bottom => Self::Bottom,
+            Direction::Left => Self::Left,
+        }
+    }
 }
 
 impl DiagDirection {
@@ -247,4 +270,50 @@ pub fn direct_neighbor_indices(y: usize, x: usize) -> [(isize, isize); 4] {
     let y = y as isize;
     let x = x as isize;
     [(y - 1, x), (y, x + 1), (y + 1, x), (y, x - 1)]
+}
+
+pub struct MutableGrid<'a> {
+    // invariant: always valid utf-8
+    src: &'a mut [u8],
+    line_len: usize,
+    lines: usize,
+}
+
+impl<'a> MutableGrid<'a> {
+    pub fn new(src: &'a mut [u8]) -> Self {
+        assert!(std::str::from_utf8(src).is_ok());
+        let line_len = line_len(&*src);
+        let lines = src.len() / line_len;
+        Self {
+            src,
+            line_len,
+            lines,
+        }
+    }
+
+    pub fn imm(&self) -> Grid<'_> {
+        Grid {
+            line_len: self.line_len,
+            lines: self.lines,
+            src: unsafe { std::str::from_utf8_unchecked(self.src) },
+        }
+    }
+
+    pub fn set(&mut self, y: usize, x: usize, b: u8) {
+        assert!(b <= 127);
+        let i = self.imm().normalize_index(y, x);
+        self.src[i] = b;
+    }
+
+    pub fn at(&self, y: usize, x: usize) -> Option<u8> {
+        self.imm().at(y, x)
+    }
+
+    pub fn swap(&mut self, ny: usize, nx: usize, y: usize, x: usize) {
+        let i1 = self.imm().normalize_index(ny, nx);
+        let i2 = self.imm().normalize_index(y, x);
+        assert!(self.src[i1] <= 127);
+        assert!(self.src[i2] <= 127);
+        self.src.swap(i1, i2);
+    }
 }
