@@ -21,8 +21,8 @@ fn parse(input: &str) -> Input<'_> {
         .map(|b| match b {
             b'>' => Direction::Right,
             b'<' => Direction::Left,
-            b'^' => Direction::Top,
-            b'v' => Direction::Bottom,
+            b'^' => Direction::Up,
+            b'v' => Direction::Down,
             _ => unreachable!("{b}"),
         })
         .collect();
@@ -37,9 +37,9 @@ fn part1(input: &str) -> u32 {
         }
 
         let (ny, nx) = match dir {
-            Direction::Top => (y - 1, x),
+            Direction::Up => (y - 1, x),
             Direction::Right => (y, x + 1),
-            Direction::Bottom => (y + 1, x),
+            Direction::Down => (y + 1, x),
             Direction::Left => (y, x - 1),
         };
 
@@ -90,18 +90,18 @@ fn part2(input: &str) -> u32 {
         let begin_x = x;
 
         let (y, x) = match dir {
-            Direction::Top => (y - 1, x),
+            Direction::Up => (y - 1, x),
             Direction::Right => (y, x + 1),
-            Direction::Bottom => (y + 1, x),
+            Direction::Down => (y + 1, x),
             Direction::Left => (y, x - 1),
         };
 
         let result = match (grid.at(y, x), dir) {
-            (Some(b'['), Direction::Top | Direction::Bottom) => {
+            (Some(b'['), Direction::Up | Direction::Down) => {
                 attempt_move(grid, y, x, dir, apply).is_some()
                     && attempt_move(grid, y, x + 1, dir, apply).is_some()
             }
-            (Some(b']'), Direction::Top | Direction::Bottom) => {
+            (Some(b']'), Direction::Up | Direction::Down) => {
                 attempt_move(grid, y, x, dir, apply).is_some()
                     && attempt_move(grid, y, x - 1, dir, apply).is_some()
             }

@@ -54,7 +54,7 @@ impl<'a> Grid<'a> {
     }
 
     pub fn direct_neighbors_opt(&self, y: usize, x: usize) -> [Option<(usize, usize, u8)>; 4] {
-        direct_neighbor_indices(y, x).map(|(y, x)| {
+        direct_neighbor_indices(y, x).map(|(y, x, _)| {
             if let Ok(y) = usize::try_from(y)
                 && let Ok(x) = usize::try_from(x)
             {
@@ -63,6 +63,24 @@ impl<'a> Grid<'a> {
                 None
             }
         })
+    }
+
+    pub fn direct_neighbors_with_direction(
+        &self,
+        y: usize,
+        x: usize,
+    ) -> impl Iterator<Item = (usize, usize, u8, Direction)> + '_ {
+        direct_neighbor_indices(y, x)
+            .into_iter()
+            .filter_map(|(y, x, dir)| {
+                if let Ok(y) = usize::try_from(y)
+                    && let Ok(x) = usize::try_from(x)
+                {
+                    self.at(y, x).map(|c| (y, x, c, dir))
+                } else {
+                    None
+                }
+            })
     }
 
     pub fn direct_neighbors(
@@ -91,12 +109,23 @@ impl<'a> Grid<'a> {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Direction {
-    Top,
+    Up,
     Right,
-    Bottom,
+    Down,
     Left,
+}
+
+impl Direction {
+    pub fn opposite(self) -> Self {
+        match self {
+            Direction::Up => Self::Down,
+            Direction::Right => Self::Left,
+            Direction::Down => Self::Up,
+            Direction::Left => Self::Right,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -114,9 +143,9 @@ pub enum DiagDirection {
 impl From<Direction> for DiagDirection {
     fn from(value: Direction) -> Self {
         match value {
-            Direction::Top => Self::Top,
+            Direction::Up => Self::Top,
             Direction::Right => Self::Right,
-            Direction::Bottom => Self::Bottom,
+            Direction::Down => Self::Bottom,
             Direction::Left => Self::Left,
         }
     }
@@ -266,10 +295,15 @@ impl Display for Grid<'_> {
     }
 }
 
-pub fn direct_neighbor_indices(y: usize, x: usize) -> [(isize, isize); 4] {
+pub fn direct_neighbor_indices(y: usize, x: usize) -> [(isize, isize, Direction); 4] {
     let y = y as isize;
     let x = x as isize;
-    [(y - 1, x), (y, x + 1), (y + 1, x), (y, x - 1)]
+    [
+        (y - 1, x, Direction::Up),
+        (y, x + 1, Direction::Right),
+        (y + 1, x, Direction::Down),
+        (y, x - 1, Direction::Left),
+    ]
 }
 
 pub struct MutableGrid<'a> {
