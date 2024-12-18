@@ -313,6 +313,16 @@ pub struct MutableGrid<'a> {
     lines: usize,
 }
 
+pub fn empty_grid(width: usize, height: usize, fill: u8) -> Vec<u8> {
+    (0..height)
+        .flat_map(|y| {
+            (0..width)
+                .map(|_| fill)
+                .chain(iter::repeat_n(b'\n', (y != height - 1) as usize))
+        })
+        .collect()
+}
+
 impl<'a> MutableGrid<'a> {
     pub fn new(src: &'a mut [u8]) -> Self {
         assert!(std::str::from_utf8(src).is_ok());

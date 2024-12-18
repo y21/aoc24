@@ -42,7 +42,7 @@ fn solve(input: &str) -> (u64, usize) {
             continue;
         }
 
-        if let Some(&dist) = seen.get(&((y, x, dir)))
+        if let Some(&dist) = seen.get(&(y, x, dir))
             && dist < score
         {
             continue;
