@@ -2,6 +2,8 @@ use std::fmt::Display;
 use std::iter;
 use std::ops::Index;
 
+use rustc_hash::FxHashSet;
+
 pub struct Grid<'a> {
     src: &'a str,
     line_len: usize,
@@ -65,12 +67,44 @@ impl<'a> Grid<'a> {
         })
     }
 
+    pub fn visualize_marked(&self, marked: &FxHashSet<(usize, usize)>) {
+        for (y, x, c) in self.iter() {
+            if y > 0 && x == 0 {
+                println!();
+            }
+            if marked.contains(&(y, x)) {
+                print!("\x1b[0;33m{}\x1b[0m", c as char);
+            } else {
+                print!("\x1b[0;34m{}\x1b[0m", c as char);
+            }
+        }
+        println!();
+    }
+
     pub fn direct_neighbors_with_direction(
         &self,
         y: usize,
         x: usize,
     ) -> impl Iterator<Item = (usize, usize, u8, Direction)> + '_ {
         direct_neighbor_indices(y, x)
+            .into_iter()
+            .filter_map(|(y, x, dir)| {
+                if let Ok(y) = usize::try_from(y)
+                    && let Ok(x) = usize::try_from(x)
+                {
+                    self.at(y, x).map(|c| (y, x, c, dir))
+                } else {
+                    None
+                }
+            })
+    }
+
+    pub fn diag_neighbors_with_direction(
+        &self,
+        y: usize,
+        x: usize,
+    ) -> impl Iterator<Item = (usize, usize, u8, DiagDirection)> + '_ {
+        diagonal_neighbor_indices(y, x)
             .into_iter()
             .filter_map(|(y, x, dir)| {
                 if let Ok(y) = usize::try_from(y)
@@ -130,22 +164,22 @@ impl Direction {
 
 #[derive(Debug, Copy, Clone)]
 pub enum DiagDirection {
-    Top,
-    TopRight,
+    Up,
+    UpRight,
     Right,
-    BottomRight,
-    Bottom,
-    BottomLeft,
+    DownRight,
+    Down,
+    DownLeft,
     Left,
-    TopLeft,
+    UpLeft,
 }
 
 impl From<Direction> for DiagDirection {
     fn from(value: Direction) -> Self {
         match value {
-            Direction::Up => Self::Top,
+            Direction::Up => Self::Up,
             Direction::Right => Self::Right,
-            Direction::Down => Self::Bottom,
+            Direction::Down => Self::Down,
             Direction::Left => Self::Left,
         }
     }
@@ -153,31 +187,31 @@ impl From<Direction> for DiagDirection {
 
 impl DiagDirection {
     pub const ALL: [Self; 8] = [
-        Self::Top,
-        Self::TopRight,
+        Self::Up,
+        Self::UpRight,
         Self::Right,
-        Self::BottomRight,
-        Self::Bottom,
-        Self::BottomLeft,
+        Self::DownRight,
+        Self::Down,
+        Self::DownLeft,
         Self::Left,
-        Self::TopLeft,
+        Self::UpLeft,
     ];
 
     pub fn opposite(self) -> Self {
         match self {
-            DiagDirection::Top => DiagDirection::Bottom,
-            DiagDirection::TopRight => DiagDirection::BottomLeft,
+            DiagDirection::Up => DiagDirection::Down,
+            DiagDirection::UpRight => DiagDirection::DownLeft,
             DiagDirection::Right => DiagDirection::Left,
-            DiagDirection::BottomRight => DiagDirection::TopLeft,
-            DiagDirection::Bottom => DiagDirection::Top,
-            DiagDirection::BottomLeft => DiagDirection::TopRight,
+            DiagDirection::DownRight => DiagDirection::UpLeft,
+            DiagDirection::Down => DiagDirection::Up,
+            DiagDirection::DownLeft => DiagDirection::UpRight,
             DiagDirection::Left => DiagDirection::Right,
-            DiagDirection::TopLeft => DiagDirection::BottomRight,
+            DiagDirection::UpLeft => DiagDirection::DownRight,
         }
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Coord {
     pub x: usize,
     pub y: usize,
@@ -263,14 +297,14 @@ impl<'a, 'b> Cursor<'a, 'b> {
 
     pub fn move_dir(&mut self, dir: DiagDirection) -> Option<u8> {
         match dir {
-            DiagDirection::Top => self.up(),
-            DiagDirection::TopRight => self.up_right(),
+            DiagDirection::Up => self.up(),
+            DiagDirection::UpRight => self.up_right(),
             DiagDirection::Right => self.right(),
-            DiagDirection::BottomRight => self.down_right(),
-            DiagDirection::Bottom => self.down(),
-            DiagDirection::BottomLeft => self.down_left(),
+            DiagDirection::DownRight => self.down_right(),
+            DiagDirection::Down => self.down(),
+            DiagDirection::DownLeft => self.down_left(),
             DiagDirection::Left => self.left(),
-            DiagDirection::TopLeft => self.up_left(),
+            DiagDirection::UpLeft => self.up_left(),
         }
     }
 
@@ -303,6 +337,21 @@ pub fn direct_neighbor_indices(y: usize, x: usize) -> [(isize, isize, Direction)
         (y, x + 1, Direction::Right),
         (y + 1, x, Direction::Down),
         (y, x - 1, Direction::Left),
+    ]
+}
+
+pub fn diagonal_neighbor_indices(y: usize, x: usize) -> [(isize, isize, DiagDirection); 8] {
+    let y = y as isize;
+    let x = x as isize;
+    [
+        (y - 1, x, DiagDirection::Up),
+        (y - 1, x + 1, DiagDirection::UpRight),
+        (y, x + 1, DiagDirection::Right),
+        (y + 1, x + 1, DiagDirection::DownRight),
+        (y + 1, x, DiagDirection::Down),
+        (y + 1, x - 1, DiagDirection::DownLeft),
+        (y, x - 1, DiagDirection::Left),
+        (y - 1, x - 1, DiagDirection::UpLeft),
     ]
 }
 
@@ -360,4 +409,10 @@ impl<'a> MutableGrid<'a> {
         assert!(self.src[i2] <= 127);
         self.src.swap(i1, i2);
     }
+}
+
+pub fn filter_positive_coords(
+    v: impl Iterator<Item = (isize, isize)>,
+) -> impl Iterator<Item = (usize, usize)> {
+    v.filter_map(|(y, x)| usize::try_from(y).ok().zip(usize::try_from(x).ok()))
 }
